@@ -136,8 +136,7 @@ delete-integration-test-dev-cluster: build ## Delete the test cluster for use wh
 ##@ Code Generation
 
 .PHONY: generate-always
-generate-always: pkg/addons/default/assets/aws-node.yaml ## Generate code (required for every build)
-	go generate ./pkg/apis/eksctl.io/v1alpha5/generate.go
+generate-always:  go generate ./pkg/apis/eksctl.io/v1alpha5/generate.go ## Generate code (required for every build)
 	go generate ./pkg/nodebootstrap
 	go generate ./pkg/addons
 	go generate ./pkg/authconfigmap
