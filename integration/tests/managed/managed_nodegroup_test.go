@@ -94,7 +94,7 @@ var _ = Describe("(Integration) Create Managed Nodegroups", func() {
 		return clusterConfig
 	}
 
-	defaultTimeout := 30 * time.Minute
+	defaultTimeout := 35 * time.Minute
 
 	type managedCLIEntry struct {
 		createArgs []string
