@@ -19,10 +19,10 @@ spec:
         stdin: true
         tty: true
         readinessProbe:
-          initialDelaySeconds: 0
-          periodSeconds: 3
-          failureThreshold: 3
-          timeoutSeconds: 1
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 5
+          timeoutSeconds: 10
           exec:
             command:
             - curl
@@ -38,10 +38,10 @@ spec:
         stdin: true
         tty: true
         readinessProbe:
-          initialDelaySeconds: 0
-          periodSeconds: 3
-          failureThreshold: 3
-          timeoutSeconds: 1
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 5
+          timeoutSeconds: 10
           exec:
             command:
             - curl
@@ -57,10 +57,10 @@ spec:
         stdin: true
         tty: true
         readinessProbe:
-          initialDelaySeconds: 0
-          periodSeconds: 3
-          failureThreshold: 3
-          timeoutSeconds: 1
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 5
+          timeoutSeconds: 10
           exec:
             command:
             - curl

@@ -582,5 +582,5 @@ var _ = Describe("(Integration) Create Managed Nodegroups", func() {
 })
 
 var _ = AfterSuite(func() {
-	params.DeleteClusters()
+	//params.DeleteClusters()
 })
