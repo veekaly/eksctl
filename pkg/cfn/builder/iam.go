@@ -81,22 +81,19 @@ func (c *ClusterResourceSet) addResourcesForIAM() {
 
 	c.rs.withIAM = true
 
-	var managedPolicyARNs []string
-
-	if !api.IsDisabled(c.spec.IAM.VPCResourceControllerPolicy) {
-		managedPolicyARNs = append(managedPolicyARNs, iamPolicyAmazonEKSVPCResourceController)
-	}
-
 	var role *gfniam.Role
 	if c.spec.IsControlPlaneOnOutposts() {
-		managedPolicyARNs = append(managedPolicyARNs, iamPolicyAmazonEKSLocalOutpostClusterPolicy)
 		role = &gfniam.Role{
 			AssumeRolePolicyDocument: cft.MakeAssumeRolePolicyDocumentForServices(
 				MakeServiceRef("EC2"),
 			),
-			ManagedPolicyArns: gfnt.NewSlice(makePolicyARNs(managedPolicyARNs...)...),
+			ManagedPolicyArns: gfnt.NewSlice(makePolicyARNs(iamPolicyAmazonEKSLocalOutpostClusterPolicy)...),
 		}
 	} else {
+		var managedPolicyARNs []string
+		if !api.IsDisabled(c.spec.IAM.VPCResourceControllerPolicy) {
+			managedPolicyARNs = append(managedPolicyARNs, iamPolicyAmazonEKSVPCResourceController)
+		}
 		managedPolicyARNs = append(managedPolicyARNs, iamPolicyAmazonEKSClusterPolicy)
 		role = &gfniam.Role{
 			AssumeRolePolicyDocument: cft.MakeAssumeRolePolicyDocumentForServices(

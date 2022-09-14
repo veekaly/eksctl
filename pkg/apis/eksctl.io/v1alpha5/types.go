@@ -708,6 +708,16 @@ func (c *ClusterConfig) GetOutpost() *Outpost {
 	return c.Outpost
 }
 
+// FindNodeGroupOutpostARN finds nodegroups that are on Outposts and returns the Outpost ARN.
+func (c *ClusterConfig) FindNodeGroupOutpostARN() (outpostARN string, found bool) {
+	for _, ng := range c.NodeGroups {
+		if ng.OutpostARN != "" {
+			return ng.OutpostARN, true
+		}
+	}
+	return "", false
+}
+
 // ClusterProvider is the interface to AWS APIs
 type ClusterProvider interface {
 	CloudFormation() awsapi.CloudFormation
@@ -833,6 +843,16 @@ type Outpost struct {
 	ControlPlaneOutpostARN string `json:"controlPlaneOutpostARN"`
 	// ControlPlaneInstanceType specifies the instance type to use for creating the control plane instances.
 	ControlPlaneInstanceType string `json:"controlPlaneInstanceType"`
+}
+
+// GetInstanceType returns the control plane instance type.
+func (o *Outpost) GetInstanceType() string {
+	return o.ControlPlaneInstanceType
+}
+
+// SetInstanceType sets the control plane instance type.
+func (o *Outpost) SetInstanceType(instanceType string) {
+	o.ControlPlaneInstanceType = instanceType
 }
 
 // OutpostInfo describes the Outpost info.
@@ -1159,6 +1179,16 @@ func (n *NodeGroup) GetDesiredCapacity() int {
 		return n.NodeGroupBase.GetDesiredCapacity()
 	}
 	return 0
+}
+
+// GetInstanceType returns the instance type.
+func (n *NodeGroup) GetInstanceType() string {
+	return n.InstanceType
+}
+
+// SetInstanceType sets the instance type.
+func (n *NodeGroup) SetInstanceType(instanceType string) {
+	n.InstanceType = instanceType
 }
 
 // GitOps groups all configuration options related to enabling GitOps Toolkit on a
