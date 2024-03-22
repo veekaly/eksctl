@@ -844,6 +844,8 @@ github.com/aws/aws-sdk-go-v2/service/cloudformation v1.45.2 h1:K09L16nZTx8IEzKSN
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.45.2/go.mod h1:tCciVL2/Zh60n6TwBKYUrL/xUjZK8uoVWIV23EhI4Nk=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.46.1 h1:CQr7NJ8H1jbKQYw5ER/TOYzBD8fiQ/iqN9A85zvKPGA=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.46.1/go.mod h1:xeVzlf/azrN9e9Va3T3MIPTzVH/alM4dlAJO523RMjY=
+github.com/aws/aws-sdk-go-v2/service/cloudformation v1.47.0 h1:ohXbAjMKbPzowX7iZCXLwobIT4I+AxP4+o3Q1h0MhVk=
+github.com/aws/aws-sdk-go-v2/service/cloudformation v1.47.0/go.mod h1:xeVzlf/azrN9e9Va3T3MIPTzVH/alM4dlAJO523RMjY=
 github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.3 h1:BvYBdyfKV+BKJsVdnJ56gbVvlvTiUyyZbu+ZiuuzFMY=
 github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.3/go.mod h1:V6maY4X+Z2wWBllN+OskcnXziUq7FyoACYXGYayY6IQ=
 github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.38.1 h1:Nu/7oOEVAvicmr19wfZG39xdx/MC3sf7aw2Cu2F+C9U=
