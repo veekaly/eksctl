@@ -3,12 +3,14 @@ package accessentry
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awseks "github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	awsiam "github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/kris-nova/logger"
 
 	api "github.com/weaveworks/eksctl/pkg/apis/eksctl.io/v1alpha5"
@@ -37,10 +39,9 @@ import (
 // Add loggic to remove aws-auth
 
 type AccessEntryMigrationOptions struct {
-	RemoveOIDCProviderTrustRelationship bool
-	TargetAuthMode                      string
-	Approve                             bool
-	Timeout                             time.Duration
+	TargetAuthMode string
+	Approve        bool
+	Timeout        time.Duration
 }
 
 type Migrator struct {
@@ -55,7 +56,6 @@ type Migrator struct {
 
 func NewMigrator(
 	clusterName string,
-
 	eksAPI awsapi.EKS,
 	iamAPI awsapi.IAM,
 	clientSet kubernetes.Interface,
@@ -212,7 +212,7 @@ func (m *Migrator) doFilterAccessEntries(cmEntries []iam.Identity, accessEntries
 			if !aeArns[cme.ARN()] { // Check if the ARN is not in existing access entries
 				switch cme.Type() {
 				case iam.ResourceTypeRole:
-					if aeEntry := doBuildNodeRoleAccessEntry(cme); aeEntry != nil {
+					if aeEntry := m.doBuildNodeRoleAccessEntry(cme); aeEntry != nil {
 						toDoEntries = append(toDoEntries, *aeEntry)
 					} else if aeEntry := doBuildAccessEntry(cme); aeEntry != nil {
 						toDoEntries = append(toDoEntries, *aeEntry)
@@ -234,20 +234,31 @@ func (m *Migrator) doFilterAccessEntries(cmEntries []iam.Identity, accessEntries
 	return toDoEntries, skipAPImode
 }
 
-func doBuildNodeRoleAccessEntry(cme iam.Identity) *api.AccessEntry {
+func (m *Migrator) doBuildNodeRoleAccessEntry(cme iam.Identity) *api.AccessEntry {
 
 	groupsStr := strings.Join(cme.Groups(), ",")
+	nameRegex := regexp.MustCompile(`[^/]+$`)
+	principalARN := ""
+
+	if match := nameRegex.FindStringSubmatch(cme.ARN()); match != nil {
+		getRoleOutput, err := m.iamAPI.GetRole(context.Background(), &awsiam.GetRoleInput{RoleName: &match[0]})
+		if err != nil {
+			return nil
+		}
+
+		principalARN = *getRoleOutput.Role.Arn
+	}
 
 	if strings.Contains(groupsStr, "system:nodes") && !strings.Contains(groupsStr, "eks:kube-proxy-windows") { // For Windows Nodes
 		return &api.AccessEntry{
-			PrincipalARN: api.MustParseARN(cme.ARN()),
+			PrincipalARN: api.MustParseARN(principalARN),
 			Type:         "EC2_LINUX",
 		}
 	}
 
 	if strings.Contains(groupsStr, "system:nodes") && strings.Contains(groupsStr, "eks:kube-proxy-windows") { // For Linux Nodes
 		return &api.AccessEntry{
-			PrincipalARN: api.MustParseARN(cme.ARN()),
+			PrincipalARN: api.MustParseARN(principalARN),
 			Type:         "EC2_WINDOWS",
 		}
 	}
@@ -289,6 +300,9 @@ func doBuildAccessEntry(cme iam.Identity) *api.AccessEntry {
 
 }
 
+func doGetFullARN() {
+
+}
 func (m Migrator) doDeleteIAMIdentityMapping() error {
 	acm, err := authconfigmap.NewFromClientSet(m.clientSet)
 	if err != nil {
