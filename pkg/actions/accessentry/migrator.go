@@ -84,6 +84,8 @@ func (m *Migrator) MigrateToAccessEntry(ctx context.Context, options AccessEntry
 			}
 		}
 		m.curAuthMode = ekstypes.AuthenticationModeApiAndConfigMap
+	} else {
+		logger.Info("target authentication mode %v is same as current authentication mode %v, not updating the Cluster authentication mode", m.tgAuthMode, m.curAuthMode)
 	}
 
 	cmEntries, err := m.doGetIAMIdentityMappings()
@@ -96,7 +98,11 @@ func (m *Migrator) MigrateToAccessEntry(ctx context.Context, options AccessEntry
 		return err
 	}
 
-	newAccessEntries, skipAPImode := m.doFilterAccessEntries(cmEntries, curAccessEntries)
+	newAccessEntries, skipAPImode, err := doFilterAccessEntries(cmEntries, curAccessEntries)
+
+	if err != nil {
+		return err
+	}
 
 	newaelen := len(newAccessEntries)
 
@@ -115,16 +121,16 @@ func (m *Migrator) MigrateToAccessEntry(ctx context.Context, options AccessEntry
 			if err != nil {
 				return err
 			}
-		}
 
-		err = m.doDeleteIAMIdentityMapping()
-		if err != nil {
-			return err
-		}
+			err = m.doDeleteIAMIdentityMapping()
+			if err != nil {
+				return err
+			}
 
-		err = doDeleteAWSAuthConfigMap(m.clientSet, "kube-system", "aws-auth")
-		if err != nil {
-			return err
+			err = doDeleteAWSAuthConfigMap(m.clientSet, "kube-system", "aws-auth")
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -181,6 +187,8 @@ func (m *Migrator) doGetAccessEntries(ctx context.Context) ([]Summary, error) {
 
 func (m *Migrator) doGetIAMIdentityMappings() ([]iam.Identity, error) {
 
+	nameRegex := regexp.MustCompile(`[^/]+$`)
+
 	acm, err := authconfigmap.NewFromClientSet(m.clientSet)
 	if err != nil {
 		return nil, err
@@ -191,10 +199,55 @@ func (m *Migrator) doGetIAMIdentityMappings() ([]iam.Identity, error) {
 		return nil, err
 	}
 
+	for idx, cme := range cmEntries {
+		switch cme.Type() {
+		case iam.ResourceTypeRole:
+			roleCme := iam.RoleIdentity{
+				RoleARN: cme.ARN(),
+				KubernetesIdentity: iam.KubernetesIdentity{
+					KubernetesUsername: cme.Username(),
+					KubernetesGroups:   cme.Groups(),
+				},
+			}
+
+			if match := nameRegex.FindStringSubmatch(roleCme.RoleARN); match != nil {
+				getRoleOutput, err := m.iamAPI.GetRole(context.Background(), &awsiam.GetRoleInput{RoleName: &match[0]})
+				if err != nil {
+					return nil, err
+				}
+
+				roleCme.RoleARN = *getRoleOutput.Role.Arn
+			}
+
+			cmEntries[idx] = iam.Identity(roleCme)
+
+		case iam.ResourceTypeUser:
+			userCme := iam.UserIdentity{
+				UserARN: cme.ARN(),
+				KubernetesIdentity: iam.KubernetesIdentity{
+					KubernetesUsername: cme.Username(),
+					KubernetesGroups:   cme.Groups(),
+				},
+			}
+
+			if match := nameRegex.FindStringSubmatch(userCme.UserARN); match != nil {
+				getUserOutput, err := m.iamAPI.GetUser(context.Background(), &awsiam.GetUserInput{UserName: &match[0]})
+				if err != nil {
+					return nil, err
+				}
+
+				userCme.UserARN = *getUserOutput.User.Arn
+			}
+
+			cmEntries[idx] = iam.Identity(userCme)
+
+		}
+	}
+
 	return cmEntries, nil
 }
 
-func (m *Migrator) doFilterAccessEntries(cmEntries []iam.Identity, accessEntries []Summary) ([]api.AccessEntry, bool) {
+func doFilterAccessEntries(cmEntries []iam.Identity, accessEntries []Summary) ([]api.AccessEntry, bool, error) {
 
 	skipAPImode := false
 	toDoEntries := []api.AccessEntry{}
@@ -212,7 +265,7 @@ func (m *Migrator) doFilterAccessEntries(cmEntries []iam.Identity, accessEntries
 			if !aeArns[cme.ARN()] { // Check if the ARN is not in existing access entries
 				switch cme.Type() {
 				case iam.ResourceTypeRole:
-					if aeEntry := m.doBuildNodeRoleAccessEntry(cme); aeEntry != nil {
+					if aeEntry := doBuildNodeRoleAccessEntry(cme); aeEntry != nil {
 						toDoEntries = append(toDoEntries, *aeEntry)
 					} else if aeEntry := doBuildAccessEntry(cme); aeEntry != nil {
 						toDoEntries = append(toDoEntries, *aeEntry)
@@ -231,40 +284,45 @@ func (m *Migrator) doFilterAccessEntries(cmEntries []iam.Identity, accessEntries
 		}
 	}
 
-	return toDoEntries, skipAPImode
+	return toDoEntries, skipAPImode, nil
 }
 
-func (m *Migrator) doBuildNodeRoleAccessEntry(cme iam.Identity) *api.AccessEntry {
+func doBuildNodeRoleAccessEntry(cme iam.Identity) *api.AccessEntry {
 
 	groupsStr := strings.Join(cme.Groups(), ",")
-	nameRegex := regexp.MustCompile(`[^/]+$`)
-	principalARN := ""
-
-	if match := nameRegex.FindStringSubmatch(cme.ARN()); match != nil {
-		getRoleOutput, err := m.iamAPI.GetRole(context.Background(), &awsiam.GetRoleInput{RoleName: &match[0]})
-		if err != nil {
-			return nil
-		}
-
-		principalARN = *getRoleOutput.Role.Arn
-	}
 
 	if strings.Contains(groupsStr, "system:nodes") && !strings.Contains(groupsStr, "eks:kube-proxy-windows") { // For Windows Nodes
 		return &api.AccessEntry{
-			PrincipalARN: api.MustParseARN(principalARN),
+			PrincipalARN: api.MustParseARN(cme.ARN()),
 			Type:         "EC2_LINUX",
 		}
 	}
 
 	if strings.Contains(groupsStr, "system:nodes") && strings.Contains(groupsStr, "eks:kube-proxy-windows") { // For Linux Nodes
 		return &api.AccessEntry{
-			PrincipalARN: api.MustParseARN(principalARN),
+			PrincipalARN: api.MustParseARN(cme.ARN()),
 			Type:         "EC2_WINDOWS",
 		}
 	}
 
 	return nil
 }
+
+// func (m *Migrator) doGetRoleARN(roleCme *iam.RoleIdentity) error {
+// 	nameRegex := regexp.MustCompile(`[^/]+$`)
+
+// 	if match := nameRegex.FindStringSubmatch(roleCme.RoleARN); match != nil {
+// 		getRoleOutput, err := m.iamAPI.GetRole(context.Background(), &awsiam.GetRoleInput{RoleName: &match[0]})
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		roleCme.RoleARN = *getRoleOutput.Role.Arn
+// 		return nil
+// 	}
+
+// 	return fmt.Errorf("Could not fetch full ARN for role %s", roleCme.RoleARN)
+// }
 
 func doBuildAccessEntry(cme iam.Identity) *api.AccessEntry {
 
