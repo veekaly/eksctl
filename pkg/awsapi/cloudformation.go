@@ -26,12 +26,12 @@ type CloudFormation interface {
 	// in the CloudFormation User Guide. Once you have activated a public third-party
 	// extension in your account and Region, use SetTypeConfiguration (https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_SetTypeConfiguration.html)
 	// to specify configuration properties for the extension. For more information, see
-	// Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-register.html#registry-set-configuration)
+	// Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-private.html#registry-set-configuration)
 	// in the CloudFormation User Guide.
 	ActivateType(ctx context.Context, params *ActivateTypeInput, optFns ...func(*Options)) (*ActivateTypeOutput, error)
 	// Returns configuration data for the specified CloudFormation extensions, from
 	// the CloudFormation registry for the account and Region. For more information,
-	// see Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-register.html#registry-set-configuration)
+	// see Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-private.html#registry-set-configuration)
 	// in the CloudFormation User Guide.
 	BatchDescribeTypeConfigurations(ctx context.Context, params *BatchDescribeTypeConfigurationsInput, optFns ...func(*Options)) (*BatchDescribeTypeConfigurationsOutput, error)
 	// Cancels an update on the specified stack. If the call completes successfully,
@@ -177,7 +177,8 @@ type CloudFormation interface {
 	// return drift information about the stack and its resources.
 	DescribeStackDriftDetectionStatus(ctx context.Context, params *DescribeStackDriftDetectionStatusInput, optFns ...func(*Options)) (*DescribeStackDriftDetectionStatusOutput, error)
 	// Returns all stack related events for a specified stack in reverse chronological
-	// order. For more information about a stack's event history, go to Stacks (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/concept-stack.html)
+	// order. For more information about a stack's event history, see CloudFormation
+	// stack creation events (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-resource-configuration-complete.html)
 	// in the CloudFormation User Guide. You can list events for stacks that have
 	// failed to create or have been deleted by specifying the unique stack identifier
 	// (stack ID).
@@ -220,8 +221,11 @@ type CloudFormation interface {
 	// Returns the description of the specified StackSet operation.
 	DescribeStackSetOperation(ctx context.Context, params *DescribeStackSetOperationInput, optFns ...func(*Options)) (*DescribeStackSetOperationOutput, error)
 	// Returns the description for the specified stack; if no stack name was
-	// specified, then it returns the description for all the stacks created. If the
-	// stack doesn't exist, a ValidationError is returned.
+	// specified, then it returns the description for all the stacks created. For more
+	// information about a stack's event history, see CloudFormation stack creation
+	// events (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-resource-configuration-complete.html)
+	// in the CloudFormation User Guide. If the stack doesn't exist, a ValidationError
+	// is returned.
 	DescribeStacks(ctx context.Context, params *DescribeStacksInput, optFns ...func(*Options)) (*DescribeStacksOutput, error)
 	// Returns detailed information about an extension that has been registered. If
 	// you specify a VersionId , DescribeType returns information about that specific
@@ -382,6 +386,8 @@ type CloudFormation interface {
 	// stacks, ListStackResources returns resource information for up to 90 days after
 	// the stack has been deleted.
 	ListStackResources(ctx context.Context, params *ListStackResourcesInput, optFns ...func(*Options)) (*ListStackResourcesOutput, error)
+	// Returns summary information about deployment targets for a stack set.
+	ListStackSetAutoDeploymentTargets(ctx context.Context, params *ListStackSetAutoDeploymentTargetsInput, optFns ...func(*Options)) (*ListStackSetAutoDeploymentTargetsOutput, error)
 	// Returns summary information about the results of a stack set operation.
 	ListStackSetOperationResults(ctx context.Context, params *ListStackSetOperationResultsInput, optFns ...func(*Options)) (*ListStackSetOperationResultsOutput, error)
 	// Returns summary information about operations performed on a stack set.
@@ -448,7 +454,7 @@ type CloudFormation interface {
 	// to monitor the progress of the registration request. Once you have registered a
 	// private extension in your account and Region, use SetTypeConfiguration (https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_SetTypeConfiguration.html)
 	// to specify configuration properties for the extension. For more information, see
-	// Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-register.html#registry-set-configuration)
+	// Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-private.html#registry-set-configuration)
 	// in the CloudFormation User Guide.
 	RegisterType(ctx context.Context, params *RegisterTypeInput, optFns ...func(*Options)) (*RegisterTypeOutput, error)
 	// When specifying RollbackStack , you preserve the state of previously provisioned
@@ -469,7 +475,7 @@ type CloudFormation interface {
 	// Specifies the configuration data for a registered CloudFormation extension, in
 	// the given account and Region. To view the current configuration data for an
 	// extension, refer to the ConfigurationSchema element of DescribeType (https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeType.html)
-	// . For more information, see Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-register.html#registry-set-configuration)
+	// . For more information, see Configuring extensions at the account level (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-private.html#registry-set-configuration)
 	// in the CloudFormation User Guide. It's strongly recommended that you use dynamic
 	// references to restrict sensitive configuration definitions, such as third-party
 	// credentials. For more details on dynamic references, see Using dynamic
