@@ -387,7 +387,7 @@ func GenerateClusterAutoscalerTags(np api.NodePool, addTag func(key, value strin
 
 	// taints
 	for _, taint := range taints {
-		addTag(taintsPrefix+taint.Key, taint.Value)
+		addTag(taintsPrefix+taint.Key, taint.Value+":"+string(taint.Effect))
 	}
 }
 
